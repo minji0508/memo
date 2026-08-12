@@ -4,13 +4,12 @@ import com.meta.memo.domain.Memo;
 import com.meta.memo.dto.MemoRequestDto;
 import com.meta.memo.dto.MemoResponseDto;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.JDBCType;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 @RestController
@@ -52,37 +51,68 @@ public class MemoController {
 
     @GetMapping()
     public List<MemoResponseDto> getMemos(){
-        //Map to List
-        List<MemoResponseDto> responseDtoList = memoList.values().stream().map(MemoResponseDto::new).toList();
+        //DB 조회
+        String sql = "SELECT * FROM memo";
+
+        List<MemoResponseDto> responseDtoList = jdbcTemplate.query(sql, new RowMapper<MemoResponseDto>() {
+            @Override
+            public MemoResponseDto mapRow(ResultSet rs, int rowNum) throws SQLException{
+                Long id = rs.getLong("id");
+                String username = rs.getString("username");
+                String contents = rs.getString("contents");
+                return new MemoResponseDto(id, username, contents);
+            }
+        });
+
         return responseDtoList;
     }
 
-    @PutMapping("{id}")
+   @PutMapping("{id}")
     public Long updateMemo(
             @PathVariable Long id,
             @RequestBody MemoRequestDto memoRequestDto){
         //해당 id의 메모가 데이터베이스에 존재하는지 확인
-        if (memoList.containsKey(id)){
-            //해당 메모를 가져오기
-            Memo memo = memoList.get(id);
+       Memo foundMemo = findById(id);
 
-            //메모 수정
-            memo.update(memoRequestDto);
-            return  memo.getId();
-        } else{
-            throw new IllegalArgumentException("선택한 id의 메모는 존재하지 않습니다.");
-        }
+       // 메모 내용 수정
+       if (foundMemo != null){
+           String sql = "UPDATE memo SET username = ?, contents =? WHERE id =?";
+           jdbcTemplate.update(sql, memoRequestDto.getUsername(), memoRequestDto.getContents(), id);
+            return id;
+       } else{
+           throw new IllegalArgumentException("선택한 id의 메모는 존재하지 않습니다.");
+       }
     }
 
     @DeleteMapping("{id}")
     public Long deleteMemo(@PathVariable Long id){
         //해당 id의 메모가 데이터베이스에 존재하는지 확인
-        if (memoList.containsKey(id)){
-            // 메모 삭제
-            memoList.remove(id);
+
+        Memo foundMemo = findById(id);
+        if (foundMemo != null){
+            String sql = "DELETE FROM memo WHERE id = ?";
+            jdbcTemplate.update(sql, id);
             return id;
         } else{
             throw new IllegalArgumentException("선택한 id의 메모는 존재하지 않습니다.");
         }
+
+
+    }
+
+    private Memo findById(Long id){
+        //DB조회
+        String sql="SELECT * FROM memo WHERE id =?";
+
+        return jdbcTemplate.query(sql, resultSet->{
+            if (resultSet.next()){
+                Memo memo = new Memo();
+                memo.setUsername(resultSet.getString("username"));
+                memo.setContents(resultSet.getString("contents"));
+                return memo;
+            } else{
+                return null;
+            }
+        }, id);
     }
 }
