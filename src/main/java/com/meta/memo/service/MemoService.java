@@ -27,7 +27,9 @@ public class MemoService {
 
     @Transactional(readOnly = true)
     public List<MemoResponseDto> getMemos() {
-        List<MemoResponseDto> responseDtoList = memoRepository.findAll()
+//        List<MemoResponseDto> responseDtoList = memoRepository.findAll()
+//                .stream().map(MemoResponseDto::new).toList();
+        List<MemoResponseDto> responseDtoList = memoRepository.findAllByOrderByCreateAtDesc()
                 .stream().map(MemoResponseDto::new).toList();
         return responseDtoList;
     }
