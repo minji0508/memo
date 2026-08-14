@@ -1,5 +1,6 @@
 package com.meta.memo.domain;
 
+import com.meta.common.domain.TimeStamped;
 import com.meta.memo.dto.MemoRequestDto;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -11,7 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "memo")
-public class Memo {
+public class Memo extends TimeStamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
